@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz App</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+font-family:Segoe UI,sans-serif;
+background:linear-gradient(135deg,#0f172a,#312e81,#4f46e5);
+min-height:100vh;color:white;padding:20px;
+display:flex;justify-content:center;align-items:center;
+}
+.container{
+max-width:900px;width:100%;
+background:rgba(255,255,255,.1);
+backdrop-filter:blur(15px);
+border-radius:25px;padding:25px;
+box-shadow:0 20px 50px rgba(0,0,0,.4);
+}
+.hide{display:none}
+h1{text-align:center;margin-bottom:15px}
+input,select,button{
+width:100%;padding:12px;margin:8px 0;
+border:none;border-radius:12px;
+}
+button{background:#6366f1;color:#fff;cursor:pointer}
+.top{display:flex;justify-content:space-between;margin-bottom:10px}
+.progress{height:10px;background:#334155;border-radius:20px;overflow:hidden}
+.progress-bar{height:100%;width:0;background:#22c55e;transition:.3s}
+.option{
+padding:14px;margin:10px 0;
+background:rgba(255,255,255,.08);
+border-radius:12px;cursor:pointer;
+transition:.3s;
+}
+.option:hover{background:rgba(255,255,255,.18)}
+.correct{background:#16a34a!important}
+.wrong{background:#dc2626!important}
+.filters{display:flex;gap:10px}
+.card{
+background:rgba(255,255,255,.08);
+padding:15px;border-radius:12px;margin:10px 0;
+}
+#reviewSection{
+margin-top:20px;
+}
+
+#reviewSection .card{
+margin-top:15px;
+padding:15px;
+border-radius:12px;
+background:rgba(255,255,255,.08);
+}
+.score{font-size:3rem;text-align:center}
+.leader{margin-top:20px}
+.theme{width:auto;padding:10px 15px}
+.light{
+background:linear-gradient(135deg,#e0e7ff,#f8fafc,#dbeafe);
+color:#111;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="startScreen">
+<div style="display:flex;justify-content:space-between">
+<h1>🧠 Quiz App</h1>
+<button class="theme" onclick="toggleTheme()">🌙 Theme</button>
+</div>
+
+<input id="playerName" placeholder="Enter your name">
+
+<select id="category">
+<option>Programming</option>
+<option>Science</option>
+<option>General Knowledge</option>
+</select>
+
+<select id="difficulty">
+<option>Easy</option>
+<option>Medium</option>
+<option>Hard</option>
+</select>
+
+<button onclick="startQuiz()">🚀 Start Quiz</button>
+</div>
+
+<div id="quizScreen" class="hide">
+<div class="top">
+<div id="questionCount"></div>
+<div>⏱ <span id="timer">20</span>s</div>
+</div>
+
+<div class="progress">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+
+<h2 id="questionText" style="margin:15px 0"></h2>
+
+<div id="options"></div>
+
+<button onclick="nextQuestion()">Next Question</button>
+</div>
+
+<div id="resultScreen" class="hide">
+<h1>🏆 Quiz Completed</h1>
+<div class="score" id="finalScore"></div>
+<h3 id="grade"></h3>
+<p id="accuracy"></p>
+
+<button onclick="showReview()">
+📋 Review Answers
+</button>
+
+<button onclick="location.reload()">
+🔄 Play Again
+</button>
+
+<div id="reviewSection"></div>
+
+<div class="leader">
+<h2>🏅 Leaderboard</h2>
+<div id="leaderboard"></div>
+</div>
+</div>
+
+</div>
+
+<script>
+const questions=[
+{q:"HTML stands for?",o:["Hyper Text Markup Language","High Text","Home Tool","Hyper Transfer"],a:0},
+{q:"CSS is used for?",o:["Database","Styling","Backend","AI"],a:1},
+{q:"JavaScript runs in?",o:["Browser","Printer","Router","BIOS"],a:0},
+{q:"Capital of India?",o:["Delhi","Mumbai","Patna","Kolkata"],a:0},
+{q:"2 + 2 ?",o:["3","4","5","6"],a:1},
+{q:"Planet known as Red Planet?",o:["Earth","Mars","Venus","Saturn"],a:1},
+{q:"Which company created Java?",o:["Sun Microsystems","Google","Meta","IBM"],a:0},
+{q:"CPU means?",o:["Central Processing Unit","Computer Power Unit","Core Unit","None"],a:0},
+{q:"Largest Ocean?",o:["Indian","Atlantic","Pacific","Arctic"],a:2},
+{q:"JS keyword for variable?",o:["var","loop","html","css"],a:0}
+];
+
+let current=0;
+let score=0;
+let selected=null;
+let timerValue=20;
+let interval;
+let userAnswers=[];
+
+function startQuiz(){
+document.getElementById("startScreen").classList.add("hide");
+document.getElementById("quizScreen").classList.remove("hide");
+
+const diff=document.getElementById("difficulty").value;
+timerValue=diff==="Easy"?30:diff==="Medium"?20:10;
+
+loadQuestion();
+startTimer();
+}
+
+function startTimer(){
+clearInterval(interval);
+let time=timerValue;
+timer.textContent=time;
+
+interval=setInterval(()=>{
+time--;
+timer.textContent=time;
+
+if(time<=0){
+nextQuestion();
+}
+},1000);
+}
+
+function loadQuestion(){
+selected=null;
+
+let q=questions[current];
+
+questionCount.textContent=`Question ${current+1}/${questions.length}`;
+questionText.textContent=q.q;
+
+options.innerHTML="";
+
+q.o.forEach((opt,index)=>{
+let div=document.createElement("div");
+div.className="option";
+div.textContent=opt;
+
+div.onclick=()=>{
+selected=index;
+
+document.querySelectorAll(".option").forEach(x=>{
+x.style.background="rgba(255,255,255,.08)";
+});
+
+div.style.background="#22c55e";
+};
+
+options.appendChild(div);
+});
+
+progressBar.style.width=(current/questions.length)*100+"%";
+}
+
+function nextQuestion(){
+
+userAnswers.push({
+question: questions[current].q,
+selected:
+selected !== null
+? questions[current].o[selected]
+: "Not Answered",
+
+correct:
+questions[current].o[questions[current].a],
+
+isCorrect:
+selected===questions[current].a
+});
+
+if(selected===questions[current].a){
+score++;
+}
+
+current++;
+
+if(current>=questions.length){
+finishQuiz();
+return;
+}
+
+loadQuestion();
+startTimer();
+}
+
+function finishQuiz(){
+clearInterval(interval);
+
+quizScreen.classList.add("hide");
+resultScreen.classList.remove("hide");
+
+const percent=Math.round(score/questions.length*100);
+
+finalScore.textContent=`${score}/${questions.length}`;
+accuracy.textContent=`Accuracy: ${percent}%`;
+
+let g="C";
+if(percent>=90) g="A+";
+else if(percent>=75) g="A";
+else if(percent>=60) g="B";
+
+grade.textContent=`Grade: ${g}`;
+
+saveScore(percent);
+loadLeaderboard();
+}
+
+function saveScore(percent){
+let board=JSON.parse(localStorage.getItem("quizUltimate"))||[];
+
+board.push({
+name:playerName.value || "Player",
+score:percent
+});
+
+board.sort((a,b)=>b.score-a.score);
+board=board.slice(0,10);
+
+localStorage.setItem("quizUltimate",JSON.stringify(board));
+}
+
+function loadLeaderboard(){
+let board=JSON.parse(localStorage.getItem("quizUltimate"))||[];
+
+leaderboard.innerHTML="";
+
+board.forEach((item,index)=>{
+leaderboard.innerHTML+=`
+<div class="card">
+${index+1}. ${item.name} - ${item.score}%
+</div>
+`;
+});
+}
+function showReview(){
+
+const review =
+document.getElementById("reviewSection");
+
+review.innerHTML = "<h2>Answer Review</h2>";
+
+userAnswers.forEach((item,index)=>{
+
+review.innerHTML += `
+<div class="card">
+
+<h3>
+Question ${index+1}
+</h3>
+
+<p>
+${item.question}
+</p>
+
+<p>
+Your Answer:
+${item.selected}
+</p>
+
+<p style="
+color:
+${item.isCorrect ? 'lime' : 'red'}
+">
+${item.isCorrect ? '✅ Correct' : '❌ Wrong'}
+</p>
+
+<p>
+Correct Answer:
+${item.correct}
+</p>
+
+</div>
+`;
+
+});
+
+}
+
+function toggleTheme(){
+document.body.classList.toggle("light");
+}
+
+</script>
+</body>
+</html>
